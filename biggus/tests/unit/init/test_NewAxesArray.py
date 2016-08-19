@@ -156,12 +156,12 @@ class Test___getitem__(unittest.TestCase):
         self.assertIsInstance(result, NewAxesArray)
         self.assertEqual(list(result._new_axes), [0, 1, 0, 1])
 
-    def test_index_existing_newaxis(self):
+    def test_index_existing_newaxis_2(self):
         result = self.array[0, 0, 0, ..., 0]
         self.assertIsInstance(result, NewAxesArray)
         self.assertEqual(list(result._new_axes), [1, 0, 0])
 
-    def test_index_existing_newaxis(self):
+    def test_index_existing_newaxis_3(self):
         result = self.array[0, 0, 0, 0, 0, 0, 0]
         self.assertIsInstance(result, NewAxesArray)
         self.assertEqual(list(result._new_axes), [0])
@@ -190,10 +190,18 @@ class Test___getitem__(unittest.TestCase):
     def test_new_axis_tuple_indexing(self):
         self.assertEqual(self.array_3d[(0, 0, 0), ...].shape, (3, 3, 1))
 
+    def test_new_axis_numpy_list_indexing(self):
+        self.assertEqual(self.array_3d[[0, 0, 0], ...].shape,
+                         (3, 3, 1))
+
     def test_new_axis_numpy_array_indexing(self):
-        msg = "NewAxesArray indexing not yet supported for ndarray keys."
+        self.assertEqual(self.array_3d[np.array([0, 0, 0]), ...].shape,
+                         (3, 3, 1))
+
+    def test_newaxis_multidim_array_indexing(self):
+        msg = "with multidimensional arrays is not supported"
         with six.assertRaisesRegex(self, NotImplementedError, msg):
-            self.array_3d[np.array([0, 0, 0]), ...]
+            self.array_3d[np.array([[0, 1], [0, 1], [0, 1]]), ...]
 
 
 class Test_ndarray(unittest.TestCase):

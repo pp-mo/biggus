@@ -44,11 +44,12 @@ def export(defn):
 
 
 _SCALAR_KEY_TYPES = (int, np.integer)
-_KEY_TYPES = _SCALAR_KEY_TYPES + (slice, tuple, np.ndarray)
+_VECTOR_KEY_TYPES = (tuple, list, np.ndarray)
+_KEY_TYPES = _SCALAR_KEY_TYPES + _VECTOR_KEY_TYPES + (slice,)
 
 
 def _is_scalar(key):
-    return isinstance(key, (int, np.integer))
+    return isinstance(key, _SCALAR_KEY_TYPES)
 
 
 @export
@@ -804,7 +805,7 @@ class NewAxesArray(ArrayContainer):
                     new_size = len(range(*key.indices(1)))
                     if new_size != 1:
                         broadcast_dict[key_index] = new_size
-                elif isinstance(key, tuple):
+                elif isinstance(key, _VECTOR_KEY_TYPES):
                     for index in key:
                         if not -1 <= index < 1:
                             raise IndexError('index {} is out of bounds for '
@@ -3164,7 +3165,7 @@ def _sliced_shape(shape, keys):
         elif isinstance(key, np.ndarray) and key.dtype == np.dtype('bool'):
             # Numpy boolean indexing.
             sliced_shape.append(builtins.sum(key))
-        elif isinstance(key, (tuple, np.ndarray)):
+        elif isinstance(key, _VECTOR_KEY_TYPES):
             sliced_shape.append(len(key))
         elif key is np.newaxis:
             shape_dim -= 1
@@ -3190,7 +3191,19 @@ def _full_keys(keys, ndim):
         keys = (keys,)
 
     # Make keys mutable, and take a copy.
-    keys = list(keys)
+    def standardised_index(key):
+        # Convert tuple keys to arrays, and reject multidimensional array keys.
+        if isinstance(key, tuple):
+            # Convert tuple keys to lists, to avoid a bug in numpy < 1.9.
+            key = list(key)
+        elif isinstance(key, np.ndarray):
+            # Ensure any array indexes are only one-dimensional.
+            if key.ndim > 1:
+                raise NotImplementedError(
+                    'indexing with multidimensional arrays is not supported.')
+        return key
+
+    keys = list(standardised_index(key) for key in keys)
 
     # Count the number of keys which actually slice a dimension.
     n_keys_non_newaxis = len([key for key in keys if key is not np.newaxis])
