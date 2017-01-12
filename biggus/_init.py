@@ -28,6 +28,7 @@ from six.moves import queue
 import sys
 import warnings
 
+import dask.array as da
 import numpy as np
 import numpy.ma as ma
 
@@ -35,6 +36,14 @@ import biggus
 
 
 __all__ = []
+
+
+#: The maximum number of bytes per chunk to allow when processing an array in
+#: "bite-size" chunks. Chunks are determined by the _all_slices function, where
+#: an assumption is made that data type nbytes is 8.
+#: The value has been empirically determined to
+#: provide vaguely near optimal performance under certain conditions.
+MAX_CHUNK_SIZE = 8 * 1024 * 1024 * 2
 
 
 def export(defn):
@@ -1478,6 +1487,40 @@ class _ArrayAdapter(Array):
 
 
 @export
+class DaskArrayAdapter(_ArrayAdapter):
+    """
+    Wrap an array or dask.array "as" a biggus array.
+
+    Some operations can then be handled more efficiently using dask.
+
+    """
+    # NOTE:
+    # We inherit from _ArrayAdapter to use the 'ndarray' and 'masked_array'
+    # methods, and the reflections of 'concrete' properties = shape, dtype and
+    # fill_value.
+    # (And possibly "__array_priority__" whatever that is ?)
+    # So, this inherits much code that is *not* wanted and should never run.
+    # Possibly a bit dangerous ?
+    def __init__(self, concrete, chunks=MAX_CHUNK_SIZE):
+        if not isinstance(concrete, da.core.Array):
+            concrete = da.from_array(concrete, chunks=chunks)
+        self.concrete = concrete
+        # Supply a dummy 'keys', as "self.shape" getter needs it.
+        self._keys = ()
+
+    def _getitem_full_keys(self, keys):
+        raise ValueError('should not happen ?')
+
+    def __getitem__(self, keys):
+        # When indexed, return a new DaskArrayAdapter.
+        return DaskArrayAdapter(self.concrete[keys])
+
+    def _apply_keys(self):
+        # Supply necessary for both 'ndarray' and 'masked_array' operations.
+        return self.concrete.compute()
+
+
+@export
 class NumpyArrayAdapter(_ArrayAdapter):
     """
     Exposes a "concrete" data source which supports NumPy "fancy
@@ -1713,6 +1756,32 @@ class ArrayStack(Array):
         the same shape.
 
     """
+    def __new__(cls, stack=None):
+        stack = np.require(stack, dtype='O')
+        components = list(stack.flat[:])
+        # See whether **all** stacked things are actually wrapped dask arrays
+        all_are_dask = all(isinstance(component, DaskArrayAdapter)
+                           for component in components)
+        # N.B. could be done with duck-typing / interface style if required,
+        # something like :
+        #  (hasattr(component, 'concrete') and
+        #   hasattr(component.concrete, 'compute'))
+        # ??but is this worth it ??
+
+        if not all_are_dask:
+            # Call parent __new__ to make a new object in the normal way.
+            result = super(ArrayStack, cls).__new__(cls)
+        else:
+            # **Instead** of making a biggus ArrayStack, build the combined
+            # object in dask, and return a DaskArrayAdapter of that.
+            if stack.ndim == 0:
+                components = stack[()].concrete
+            else:
+                components = [component.concrete for component in components]
+            dask_array = da.stack(components)
+            result = DaskArrayAdapter(dask_array)
+        return result
+
     def __init__(self, stack):
         stack = np.require(stack, dtype='O')
         first_array = stack.flat[0]
@@ -2089,14 +2158,6 @@ def masked_arrays(arrays):
 
     """
     return biggus.engine.masked_arrays(*arrays)
-
-
-#: The maximum number of bytes per chunk to allow when processing an array in
-#: "bite-size" chunks. Chunks are determined by the _all_slices function, where
-#: an assumption is made that data type nbytes is 8.
-#: The value has been empirically determined to
-#: provide vaguely near optimal performance under certain conditions.
-MAX_CHUNK_SIZE = 8 * 1024 * 1024 * 2
 
 
 def _all_slices(array):
