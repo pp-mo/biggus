@@ -1537,7 +1537,7 @@ class DaskNumpyArrayAdapter(DaskArrayAdapter):
         super(DaskNumpyArrayAdapter, self).__init__(concrete)
 
 @export
-class NumpyArrayAdapter(_ArrayAdapter):
+class NumpyArrayAdapter(DaskNumpyArrayAdapter):
     """
     Exposes a "concrete" data source which supports NumPy "fancy
     indexing" as a :class:`biggus.Array`.
@@ -1548,6 +1548,9 @@ class NumpyArrayAdapter(_ArrayAdapter):
     treats multiple iterable index keys as independent.
 
     """
+    pass
+
+class _Old_NumpyArrayAdapter(_ArrayAdapter):
     def _apply_keys(self):
         # If we have more than one tuple as a key, then NumPy does
         # "fancy" indexing, instead of "column-based" indexing, so we
