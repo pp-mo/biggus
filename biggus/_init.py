@@ -1787,13 +1787,15 @@ class ArrayStack(Array):
         #   hasattr(component.concrete, 'compute'))
         # ??but is this worth it ??
 
-        if not all_are_dask:
+        if stack is None or not all_are_dask:
             # Call parent __new__ to make a new object in the normal way.
+            # N.B. __new__ must also support no-args call, e.g. for deepcopy.
             result = super(ArrayStack, cls).__new__(cls)
         else:
             # **Instead** of making a biggus ArrayStack, build the combined
             # object in dask, and return a DaskArrayAdapter of that.
             if stack.ndim == 0:
+                # Handle array scalar inputs, as biggus does.
                 components = stack[()].concrete
             else:
                 components = [component.concrete for component in components]
