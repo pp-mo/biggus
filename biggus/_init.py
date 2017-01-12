@@ -2875,15 +2875,22 @@ def mean(a, axis=None, mdtol=1):
     :rtype: Array
 
     """
-    axes = _normalise_axis(axis, a)
-    if axes is None or len(axes) != 1:
-        msg = "This operation is currently limited to a single axis"
-        raise AxisSupportError(msg)
-    dtype = (np.array([0], dtype=a.dtype) / 1.).dtype
-    kwargs = dict(mdtol=mdtol)
-    return _Aggregation(a, axes[0],
-                        _MeanStreamsHandler, _MeanMaskedStreamsHandler,
-                        dtype, kwargs)
+    if isinstance(a, DaskArrayAdapter):
+        # We can do this with dask
+        a = a.concrete
+        a = da.mean(a, axis=axis)
+        result = DaskArrayAdapter(a)
+    else:
+        axes = _normalise_axis(axis, a)
+        if axes is None or len(axes) != 1:
+            msg = "This operation is currently limited to a single axis"
+            raise AxisSupportError(msg)
+        dtype = (np.array([0], dtype=a.dtype) / 1.).dtype
+        kwargs = dict(mdtol=mdtol)
+        result = _Aggregation(a, axes[0],
+                              _MeanStreamsHandler, _MeanMaskedStreamsHandler,
+                              dtype, kwargs)
+    return result
 
 
 @export
