@@ -1489,7 +1489,7 @@ class _ArrayAdapter(Array):
 @export
 class DaskArrayAdapter(_ArrayAdapter):
     """
-    Wrap an array or dask.array "as" a biggus array.
+    Wrap a dask.array "as" a biggus array.
 
     Some operations can then be handled more efficiently using dask.
 
@@ -1501,9 +1501,11 @@ class DaskArrayAdapter(_ArrayAdapter):
     # (And possibly "__array_priority__" whatever that is ?)
     # So, this inherits much code that is *not* wanted and should never run.
     # Possibly a bit dangerous ?
-    def __init__(self, concrete, chunks=MAX_CHUNK_SIZE):
-        if not isinstance(concrete, da.core.Array):
-            concrete = da.from_array(concrete, chunks=chunks)
+    def __init__(self, concrete):
+        if not hasattr(concrete, 'compute'):
+            msg = ("Argument has no 'compute' method: "
+                   "expecting a dask object but type is {}.'")
+            raise ValueError(msg.format(str(type(concrete))))
         self.concrete = concrete
         # Supply a dummy 'keys', as "self.shape" getter needs it.
         self._keys = ()
@@ -1519,6 +1521,20 @@ class DaskArrayAdapter(_ArrayAdapter):
         # Supply necessary for both 'ndarray' and 'masked_array' operations.
         return self.concrete.compute()
 
+
+@export
+class DaskNumpyArrayAdapter(DaskArrayAdapter):
+    """
+    Wrap a numpy array "as" a biggus array, but using dask underneath.
+
+    """
+    def __init__(self, concrete, chunks=MAX_CHUNK_SIZE):
+#        # Would like to check indexing behaviour, but there is no clear way ?
+#        if not hasattr(concrete, 'numpy_???'):
+#            msg = 'Argument should be a numpy array, not {}.'
+#            raise ValueError(msg.format(str(type(concrete))))
+        concrete = da.from_array(concrete, chunks=chunks)
+        super(DaskNumpyArrayAdapter, self).__init__(concrete)
 
 @export
 class NumpyArrayAdapter(_ArrayAdapter):
