@@ -1794,12 +1794,20 @@ class ArrayStack(Array):
         else:
             # **Instead** of making a biggus ArrayStack, build the combined
             # object in dask, and return a DaskArrayAdapter of that.
-            if stack.ndim == 0:
-                # Handle array scalar inputs, as biggus does.
-                components = stack[()].concrete
-            else:
-                components = [component.concrete for component in components]
-            dask_array = da.stack(components)
+            def multidim_daskstack(stack):
+                if stack.ndim == 0:
+                    # Handle array scalar inputs, as biggus does.
+                    dask_components = stack[()].concrete
+                elif stack.ndim == 1:
+                    # 'Another' base case : simple 1-d goes direct in dask.
+                    dask_components = [component.concrete
+                                       for component in stack]
+                else:
+                    # Recurse because dask.stack does not do multi-dimensional.
+                    dask_components = [multidim_daskstack(subarray)
+                                       for subarray in stack]
+                return da.stack(dask_components)
+            dask_array = multidim_daskstack(stack)
             result = DaskArrayAdapter(dask_array)
         return result
 
