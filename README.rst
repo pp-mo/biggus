@@ -51,15 +51,6 @@ if it has demanding requirements, or encounters bugs in Biggus, or requires
 new features to be added.
 
 
-Get in touch!
--------------
-
-We're *very* keen to hear from you !
-
-* How are you thinking of using biggus?
-* What capabilities does biggus need for it to be useful to you?
-* What capabilities does biggus already have that you find useful?
-
 Further reading
 ---------------
 
@@ -67,6 +58,10 @@ To get more ideas of what Biggus can do, please browse the wiki_, and its exampl
 
 .. _wiki: https://github.com/SciTools/biggus/wiki
 .. _examples: https://github.com/SciTools/biggus/wiki/Sample-usage
+
+
+Get in touch!
+-------------
 
 If you have any questions or feedback please feel free to post to the
 `discussion group`_ or `raise an issue`_ on the `issue tracker`_.
