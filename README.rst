@@ -27,11 +27,34 @@ And an Array can be converted to a numpy ndarray on demand::
     array([ 0.72151309,  0.54654914], dtype=float32)
 
 
+--------------------
+Note : Future Status
+--------------------
+Biggus was originally developed primarily to provide large data handling for
+`Iris <http://github.com/SciTools/iris>`_ .
+
+For most applications it has now been surpassed by
+`Dask <http://https://github.com/dask/dask>`_, which has been adopted by the
+vast majority of other projects using virtual arrays.
+
+Thus, **Dask is now generally preferred to Biggus**.
+
+Iris itself now uses Dask in place of Biggus, from version 2.0 onwards.
+As Biggus is little used by projects other than Iris, this means that its
+future support status is now uncertain.
+
+We therefore recommend that
+**new code, at least, should now use Dask instead.**
+
+Likewise, you may want to consider porting existing code to Dask, especially
+if it has demanding requirements, or encounters bugs in Biggus, or requires
+new features to be added.
+
+
 Get in touch!
 -------------
 
-We've got lots of exciting plans underway for biggus,
-but we're also *very* keen to hear from you.
+We're *very* keen to hear from you !
 
 * How are you thinking of using biggus?
 * What capabilities does biggus need for it to be useful to you?
