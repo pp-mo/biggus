@@ -40,8 +40,8 @@ of other projects working with virtual arrays.
 Thus, **Dask is now generally preferred to Biggus**.
 
 Iris itself now uses Dask in place of Biggus, from version 2.0 onwards.
-As Biggus is little used by projects other than Iris, this means that its
-future development and support is now uncertain.
+As Biggus is little used by projects other than Iris, any future development
+and support will depend on interest from other groups.
 
 We therefore recommend that
 **new code, at least, should now use Dask instead.**
